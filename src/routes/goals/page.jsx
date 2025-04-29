@@ -68,7 +68,7 @@ const GoalsPage = () => {
         account: ""
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create goal");
+      setError(err.response?.data?.message || "Failed to Create goal");
       console.error("Error creating goal:", err);
     }
   };
