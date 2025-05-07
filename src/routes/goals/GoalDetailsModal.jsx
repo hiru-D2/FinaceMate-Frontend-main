@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
   FaTimes, 
   FaInfoCircle, 
@@ -7,13 +7,17 @@ import {
   FaTrash,
   FaEdit,
   FaCheckCircle,
-  FaWallet
+  FaWallet,
+  FaFilePdf
 } from "react-icons/fa";
 import { MdAttachMoney, MdDone } from "react-icons/md";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const GoalDetailsModal = ({ goal, onClose, onUpdate, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [updatedGoal, setUpdatedGoal] = useState(goal);
+  const modalContentRef = useRef(null);
 
   const { 
     name, 
@@ -66,10 +70,77 @@ const GoalDetailsModal = ({ goal, onClose, onUpdate, onDelete }) => {
     }
   };
 
+  // Function to export goal details as PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Set title
+    doc.setFontSize(22);
+    doc.setTextColor(0, 0, 139); // Dark blue
+    doc.text(`Goal: ${name}`, 20, 20);
+    
+    // Add divider
+    doc.setDrawColor(0, 0, 139);
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
+    
+    // Set normal text
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    
+    // Description
+    if (description) {
+      doc.text("Description:", 20, 35);
+      doc.setTextColor(100, 100, 100);
+      doc.text(description, 20, 42);
+      doc.setTextColor(0, 0, 0);
+    }
+    
+    // Progress percentage
+    doc.text(`Progress: ${progress}%`, 20, 55);
+    
+    // Progress bar
+    doc.setFillColor(200, 200, 200);
+    doc.rect(20, 60, 150, 8, 'F');
+    
+    // Fill progress bar
+    const progressColor = progress >= 100 ? [0, 128, 0] : [0, 102, 204];
+    doc.setFillColor(progressColor[0], progressColor[1], progressColor[2]);
+    doc.rect(20, 60, (150 * progress) / 100, 8, 'F');
+    
+    // Add financial details
+    doc.text("Financial Details:", 20, 80);
+    doc.text(`Target Amount: $${totalAmount.toFixed(2)}`, 25, 90);
+    doc.text(`Current Balance: $${balance.toFixed(2)}`, 25, 100);
+    doc.text(`Amount Saved: $${(totalAmount - balance).toFixed(2)}`, 25, 110);
+    doc.text(`Contribution: $${contributionAmount.toFixed(2)} ${formatInterval(contributionInterval)}`, 25, 120);
+    
+    // Add account information
+    if (account) {
+      doc.text(`Account: ${account.name}`, 25, 130);
+    }
+    
+    // Add dates
+    doc.text("Important Dates:", 20, 150);
+    doc.text(`Created: ${formatDate(createdAt)}`, 25, 160);
+    if (nextContributionDate) {
+      doc.text(`Next Contribution: ${formatDate(nextContributionDate)}`, 25, 170);
+    }
+    
+    // Footer
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    const date = new Date().toLocaleDateString();
+    doc.text(`Generated on ${date}`, 20, 270);
+    
+    // Save the PDF
+    doc.save(`${name.replace(/\s+/g, '_')}_goal_details.pdf`);
+  };
+
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+        <div className="p-6" ref={modalContentRef}>
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
@@ -311,12 +382,20 @@ const GoalDetailsModal = ({ goal, onClose, onUpdate, onDelete }) => {
               {/* Footer */}
               <div className="pt-4 mt-4 border-t border-gray-200 flex justify-between items-center">
                 <p className="text-xs text-gray-500">Created on {formatDate(createdAt)}</p>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                  <FaEdit /> Edit Goal
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={exportToPDF}
+                    className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                  >
+                    <FaFilePdf /> Export PDF
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <FaEdit /> Edit Goal
+                  </button>
+                </div>
               </div>
             </>
           )}
